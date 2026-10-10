@@ -5,8 +5,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
+  --font-display: "Playfair Display", "Merriweather", Georgia, serif;
+  --font-serif: "Merriweather", "Playfair Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", "Be Vietnam Pro", "Lexend", system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

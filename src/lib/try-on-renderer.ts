@@ -351,12 +351,14 @@ export async function renderVirtualTryOn(
         }
 
         // 7. Accessories (Phụ kiện)
-        // A. Kiềng bạc (Silver torque necklace)
-        if (
-          accessories.includes("Kiềng bạc") ||
-          outfit.remix.some((r) => r.includes("Kiềng bạc"))
-        ) {
+        // A. Kiềng bạc / Túi / Trang sức (Necklace & Silk purse / Jade pendant)
+        const hasJewelryOrBag =
+          accessories.some((a) => /kiềng|túi|trang sức|ngọc/i.test(a)) ||
+          outfit.remix.some((r) => /kiềng|túi|trang sức/i.test(r));
+
+        if (hasJewelryOrBag) {
           ctx.save();
+          // Silver torque necklace
           const silverGrad = ctx.createLinearGradient(
             centerX - W * 0.09,
             neckY,
@@ -374,73 +376,163 @@ export async function renderVirtualTryOn(
           ctx.beginPath();
           ctx.arc(centerX, neckY + 16, W * 0.08, 0.25, Math.PI - 0.25);
           ctx.stroke();
+
+          // Silk embroidered pouch / jade medallion hanging at hip
+          if (accessories.some((a) => /túi|trang sức/i.test(a))) {
+            const pouchX = centerX - waistWidth * 0.44;
+            const pouchY = hipY + 10;
+            ctx.fillStyle = "#8a2424";
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.arc(pouchX, pouchY, 14, 0, Math.PI * 2);
+            ctx.fill();
+            // Jade medallion center
+            ctx.fillStyle = "#2e7d5b";
+            ctx.beginPath();
+            ctx.arc(pouchX, pouchY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            // Gold tassel
+            ctx.strokeStyle = "#e6b94d";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(pouchX, pouchY + 14);
+            ctx.lineTo(pouchX, pouchY + 32);
+            ctx.stroke();
+          }
           ctx.restore();
         }
 
-        // B. Mấn đội đầu (Traditional turban headband)
-        if (
-          accessories.includes("Mấn") ||
-          accessories.includes("Mấn đồng màu") ||
-          outfit.remix.some((r) => r.includes("Mấn"))
-        ) {
-          ctx.save();
-          const manY = headTop + (chinY - headTop) * 0.22;
-          const manRadiusX = W * 0.13;
-          const manRadiusY = H * 0.035;
+        // B. Mấn đội đầu / Khăn vấn (Traditional turban crown arched over head)
+        const hasManOrKhan =
+          accessories.some((a) => /mấn|khăn/i.test(a)) ||
+          outfit.remix.some((r) => /mấn|khăn/i.test(r));
 
+        if (hasManOrKhan) {
+          ctx.save();
+          const manY = headTop + (chinY - headTop) * 0.18;
+          const manRadiusX = W * 0.125;
+          const manRadiusY = H * 0.038;
+
+          // Arched multi-layer royal silk turban
           const manGrad = ctx.createLinearGradient(
             centerX,
             manY - manRadiusY,
             centerX,
             manY + manRadiusY,
           );
-          manGrad.addColorStop(0, adjustColorBrightness(outfit.color, 25));
-          manGrad.addColorStop(0.6, outfit.color);
-          manGrad.addColorStop(1, adjustColorBrightness(outfit.color, -25));
+          manGrad.addColorStop(0, "#D63031");
+          manGrad.addColorStop(0.4, outfit.color || "#8C1417");
+          manGrad.addColorStop(1, "#4A080A");
 
           ctx.fillStyle = manGrad;
-          ctx.shadowColor = "rgba(0,0,0,0.35)";
-          ctx.shadowBlur = 10;
+          ctx.shadowColor = "rgba(0,0,0,0.25)";
+          ctx.shadowBlur = 8;
           ctx.beginPath();
           ctx.ellipse(centerX, manY, manRadiusX, manRadiusY, 0, 0, Math.PI * 2);
           ctx.fill();
 
-          // Gold ribbon band around Mấn
-          ctx.strokeStyle = outfit.trim;
-          ctx.lineWidth = 3.5;
+          // Gold concentric brocade embroidery rims
+          ctx.strokeStyle = "#D4AF37";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.ellipse(centerX, manY, manRadiusX * 0.88, manRadiusY * 0.85, 0, 0, Math.PI * 2);
           ctx.stroke();
+
+          // Imperial Gold Lotus crest ornament at center
+          ctx.fillStyle = "#FFEAA7";
+          ctx.beginPath();
+          ctx.arc(centerX, manY, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#D63031";
+          ctx.beginPath();
+          ctx.arc(centerX, manY, 2.5, 0, Math.PI * 2);
+          ctx.fill();
           ctx.restore();
         }
 
-        // C. Quạt giấy (Traditional folding fan held in hand)
-        if (
-          accessories.includes("Quạt giấy") ||
-          outfit.remix.some((r) => r.includes("Quạt giấy"))
-        ) {
-          ctx.save();
-          const fanX = centerX + waistWidth * 0.42;
-          const fanY = waistY + 15;
-          ctx.translate(fanX, fanY);
-          ctx.rotate(-0.4);
+        // C. Quạt lụa vàng (Traditional silk folding fan held gracefully in hand)
+        const hasFan =
+          accessories.some((a) => /quạt/i.test(a)) || outfit.remix.some((r) => /quạt/i.test(r));
 
-          ctx.fillStyle = "#faf3e0";
-          ctx.shadowColor = "rgba(0,0,0,0.3)";
-          ctx.shadowBlur = 8;
+        if (hasFan) {
+          ctx.save();
+          const fanX = centerX + waistWidth * 0.44;
+          const fanY = waistY + 12;
+          ctx.translate(fanX, fanY);
+          ctx.rotate(-0.35);
+
+          // Silk Arc in warm ivory and gold
+          const fanSilkGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, W * 0.15);
+          fanSilkGrad.addColorStop(0, "#FFFDF7");
+          fanSilkGrad.addColorStop(0.6, "#FAF1DA");
+          fanSilkGrad.addColorStop(1, "#EAD6A8");
+
+          ctx.fillStyle = fanSilkGrad;
+          ctx.shadowColor = "rgba(0,0,0,0.2)";
+          ctx.shadowBlur = 6;
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.arc(0, 0, W * 0.14, -Math.PI * 0.85, -Math.PI * 0.15);
+          ctx.arc(0, 0, W * 0.14, -Math.PI * 0.82, -Math.PI * 0.18);
           ctx.closePath();
           ctx.fill();
 
-          // Fan ribs
-          ctx.strokeStyle = "#8b5a2b";
-          ctx.lineWidth = 1.8;
-          for (let angle = -Math.PI * 0.85; angle <= -Math.PI * 0.15; angle += 0.25) {
+          // Gold border
+          ctx.strokeStyle = "#D4AF37";
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+
+          // Delicate warm bamboo ribs (NO dark black lines)
+          ctx.strokeStyle = "#B38642";
+          ctx.lineWidth = 1.4;
+          for (let angle = -Math.PI * 0.82; angle <= -Math.PI * 0.18; angle += 0.22) {
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.lineTo(Math.cos(angle) * W * 0.14, Math.sin(angle) * W * 0.14);
             ctx.stroke();
           }
+
+          // Fan pivot and crimson silk tassel with jade bead
+          ctx.fillStyle = "#D4AF37";
+          ctx.beginPath();
+          ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "#D63031";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(0, 3);
+          ctx.lineTo(0, 14);
+          ctx.stroke();
+          ctx.fillStyle = "#20BF6B";
+          ctx.beginPath();
+          ctx.arc(0, 8, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // D. Giày / Boots / Sneaker (Footwear)
+        const hasFootwear =
+          accessories.some((a) => /giày|boot|sneaker|guốc/i.test(a)) ||
+          outfit.remix.some((r) => /giày|boot|sneaker|guốc/i.test(r));
+
+        if (hasFootwear) {
+          ctx.save();
+          ctx.fillStyle = "#2b1810";
+          ctx.shadowColor = "rgba(0,0,0,0.4)";
+          ctx.shadowBlur = 6;
+          // Left foot shoe
+          ctx.beginPath();
+          ctx.roundRect(centerX - hipWidth * 0.38, ankleY, W * 0.1, H * 0.045, 6);
+          ctx.fill();
+          // Right foot shoe
+          ctx.beginPath();
+          ctx.roundRect(centerX + hipWidth * 0.28, ankleY, W * 0.1, H * 0.045, 6);
+          ctx.fill();
+
+          // Gold rim on shoes
+          ctx.strokeStyle = outfit.trim;
+          ctx.lineWidth = 2;
+          ctx.stroke();
           ctx.restore();
         }
 

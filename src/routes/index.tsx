@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { User, Sparkles } from "lucide-react";
+import { User, Sparkles, Check } from "lucide-react";
 import { Garment3D } from "@/components/Garment3D";
 import { Button } from "@/components/ui/button";
 import { OutfitCombinations } from "@/components/OutfitCombinations";
 import { HeritageHome } from "@/components/HeritageHome";
+import { ModelWearAccessories } from "@/lib/accessory-3d";
+import { getAccessory3DGraphic } from "@/lib/accessory-utils";
 import {
   ACCESSORIES,
   GARMENT_OPTIONS,
@@ -129,6 +131,17 @@ function App() {
     setOutfit(o);
     setCombination(getCombinations(o.id, prefs.accessories)[0] ?? null);
   };
+  const activeAccessoriesForDisplay = useMemo(() => {
+    const list = new Set<string>();
+    (prefs.accessories || []).forEach((a) => list.add(a));
+    if (combination?.accessories) {
+      combination.accessories.forEach((a) => list.add(a));
+    }
+    (styledOutfit.remix || []).forEach((r) => {
+      if (r && !/váy|quần|yếm/i.test(r)) list.add(r);
+    });
+    return Array.from(list);
+  }, [prefs.accessories, combination, styledOutfit.remix]);
   const [photo, setPhoto] = useState<{ url: string; file?: File } | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [isFinal, setIsFinal] = useState(false);
@@ -248,19 +261,25 @@ function App() {
       {currentNav === "Trang chủ" ? (
         <HeritageHome
           onStartExplore={() => {
-            setCurrentNav("Chọn gu");
-            setStep(0);
+            setCurrentNav("Chọn bộ");
+            setStep(1);
           }}
           onSelectGarment={(garmentId) => {
             setPrefs((p) => ({ ...p, garment: garmentId }));
             selectOutfit(getOutfit(garmentId));
-            setCurrentNav("Chọn bộ");
-            setStep(1);
+          }}
+          onStartTryOn={(garmentId, occasion, accessories) => {
+            setPrefs((p) => ({ ...p, garment: garmentId, occasion, accessories }));
+            selectOutfit(getOutfit(garmentId));
+            setPhoto({ url: prefs.gender === "Nữ" ? modelNu : modelNam });
+            setCurrentNav("Thử đồ");
+            setStep(2);
           }}
           onSelectOccasion={(occ) => {
             setPrefs((p) => ({ ...p, occasion: occ }));
-            setCurrentNav("Chọn gu");
-            setStep(0);
+          }}
+          onSelectAccessories={(accs) => {
+            setPrefs((p) => ({ ...p, accessories: accs }));
           }}
         />
       ) : (
@@ -342,6 +361,7 @@ function App() {
                 <StepKetQua
                   outfit={styledOutfit}
                   result={result}
+                  accessories={activeAccessoriesForDisplay}
                   isFinal={isFinal}
                   loading={loading}
                   error={error}
@@ -545,24 +565,64 @@ function StepGu({
           </div>
         </div>
         <div>
-          <div className="mb-3 font-display text-lg">Phụ kiện yêu thích</div>
-          <div className="flex flex-wrap gap-2">
-            {ACCESSORIES.map((accessory) => (
-              <Chip
-                key={accessory}
-                active={prefs.accessories.includes(accessory)}
-                onClick={() =>
-                  setPrefs({
-                    ...prefs,
-                    accessories: prefs.accessories.includes(accessory)
-                      ? prefs.accessories.filter((item) => item !== accessory)
-                      : [...prefs.accessories, accessory],
-                  })
-                }
-              >
-                {accessory}
-              </Chip>
-            ))}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="font-display text-lg">Phụ kiện yêu thích (3D)</span>
+            <span className="text-xs text-amber-400 font-mono">
+              {prefs.accessories.length} đã chọn
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Chọn phụ kiện 3D để mix trực tiếp lên người mẫu khi mặc thử
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {ACCESSORIES.map((accessory) => {
+              const active = prefs.accessories.includes(accessory);
+              const Graphic = getAccessory3DGraphic(accessory);
+              const subtitles: Record<string, string> = {
+                Mấn: "Hoàng triều quý phái",
+                "Guốc mộc": "Kinh Bắc mộc mạc",
+                "Quạt giấy": "Thanh nhã duyên dáng",
+                Sneaker: "Hiện đại phá cách",
+              };
+              return (
+                <button
+                  key={accessory}
+                  type="button"
+                  onClick={() =>
+                    setPrefs({
+                      ...prefs,
+                      accessories: active
+                        ? prefs.accessories.filter((item) => item !== accessory)
+                        : [...prefs.accessories, accessory],
+                    })
+                  }
+                  className={`group relative flex flex-col items-center justify-center p-3.5 rounded-2xl border transition-all duration-300 transform hover:-translate-y-1 shadow-md cursor-pointer ${
+                    active
+                      ? "border-accent bg-accent/15 ring-2 ring-accent/40 shadow-[var(--shadow-glow)] scale-[1.02]"
+                      : "border-border bg-secondary/30 hover:border-accent/60 hover:bg-secondary/50"
+                  }`}
+                >
+                  <div className="relative w-14 h-14 flex items-center justify-center mb-2 transition-transform duration-300 group-hover:scale-110">
+                    <Graphic className="w-13 h-13 object-contain drop-shadow-lg" />
+                    {active && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow">
+                        <Check className="w-2.5 h-2.5 stroke-[3]" />
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`text-xs font-semibold tracking-tight text-center ${
+                      active ? "text-accent" : "text-foreground"
+                    }`}
+                  >
+                    {accessory}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground text-center mt-0.5 line-clamp-1">
+                    {subtitles[accessory] ?? "Phụ kiện cổ phục"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="flex justify-end pt-2">
@@ -741,6 +801,12 @@ function StepBo({
                       loading="lazy"
                     />
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/95 via-background/15 to-black/30" />
+                    {active && (
+                      <ModelWearAccessories
+                        activeAccessories={combination?.accessories ?? prefs.accessories}
+                        outfitId={o.id}
+                      />
+                    )}
                     <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between">
                       <span className="inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-medium text-amber-300 backdrop-blur-md border border-amber-400/30 shadow-sm">
                         ✨ AI vẽ: {o.type}
@@ -803,13 +869,22 @@ function StepBo({
 
                 <div className="rounded-xl border border-border bg-background/40 p-3">
                   <div className="mb-2 text-[11px] font-semibold tracking-[0.25em] text-canary">
-                    PHỐI PHỤ KIỆN REMIX
+                    PHỐI PHỤ KIỆN REMIX (3D)
                   </div>
-                  <ul className="space-y-1 text-sm">
-                    {o.remix.map((r) => (
-                      <li key={r}>✦ {r}</li>
-                    ))}
-                  </ul>
+                  <div className="grid grid-cols-2 gap-1.5 text-xs">
+                    {o.remix.map((r) => {
+                      const Graphic = getAccessory3DGraphic(r);
+                      return (
+                        <div
+                          key={r}
+                          className="flex items-center gap-1.5 p-1.5 rounded-lg bg-black/40 border border-border/50"
+                        >
+                          <Graphic className="w-5 h-5 object-contain shrink-0" />
+                          <span className="truncate text-[11px] text-stone-200">{r}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </motion.article>
@@ -936,6 +1011,7 @@ function StepThu({
                 className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-black/40" />
+              <ModelWearAccessories activeAccessories={outfit.remix} outfitId={outfit.id} />
             </>
           ) : (
             <div className="h-full w-full pattern-bg">
@@ -1037,13 +1113,22 @@ function StepThu({
         </div>
       </div>
       <div className="mt-5 border-t border-border pt-4">
-        <h2 className="font-display text-lg">Cách phối đã chọn</h2>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {outfit.remix.map((item) => (
-            <span key={item} className="rounded-full bg-accent/15 px-3 py-1 text-sm text-accent">
-              {item}
-            </span>
-          ))}
+        <h2 className="font-display text-lg">Cách phối & Phụ kiện 3D đã chọn</h2>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {outfit.remix.map((item) => {
+            const Graphic = getAccessory3DGraphic(item);
+            return (
+              <div
+                key={item}
+                className="flex items-center gap-2 p-2 rounded-xl bg-accent/10 border border-accent/30 text-accent text-xs font-semibold"
+              >
+                <div className="w-8 h-8 rounded-lg bg-black/40 flex items-center justify-center shrink-0">
+                  <Graphic className="w-7 h-7 object-contain" />
+                </div>
+                <span className="truncate">{item}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className="mt-8 flex justify-between">
@@ -1061,6 +1146,7 @@ function StepThu({
 function StepKetQua({
   outfit,
   result,
+  accessories,
   isFinal,
   loading,
   error,
@@ -1070,6 +1156,7 @@ function StepKetQua({
 }: {
   outfit: Outfit;
   result: string | null;
+  accessories?: string[];
   isFinal: boolean;
   loading: boolean;
   error: string | null;
@@ -1121,11 +1208,29 @@ function StepKetQua({
               </div>
             ) : (
               result && (
-                <img
-                  src={result}
-                  alt="Ảnh thử đồ"
-                  className={`h-full max-h-[640px] w-full object-contain transition-[filter] duration-700 ${isFinal ? "blur-0" : "blur-2xl"}`}
-                />
+                <div className="relative h-full max-h-[600px] aspect-[848/1264] w-auto mx-auto rounded-2xl overflow-hidden shadow-2xl border border-amber-500/40 bg-[#140c08] flex items-center justify-center">
+                  <img
+                    src={result}
+                    alt="Ảnh thử đồ"
+                    className={`h-full w-full object-cover transition-[filter] duration-700 select-none ${isFinal ? "blur-0" : "blur-2xl"}`}
+                  />
+                  <ModelWearAccessories
+                    activeAccessories={accessories ?? []}
+                    outfitId={outfit.id}
+                  />
+                  {accessories && accessories.length > 0 && (
+                    <div className="absolute top-3 right-3 z-30 flex flex-wrap gap-1 max-w-[220px] justify-end pointer-events-none">
+                      {accessories.map((acc) => (
+                        <span
+                          key={acc}
+                          className="rounded-full bg-black/80 border border-amber-400 text-amber-300 text-[10px] font-semibold px-2.5 py-0.5 backdrop-blur-md shadow-md flex items-center gap-1 animate-in fade-in zoom-in-95"
+                        >
+                          <span className="text-amber-400">✦</span> {acc}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )
             )}
             {loading && (
